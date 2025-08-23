@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SUDOKU CHALLENGE BY EMENES INTERACTIVE</title>
+<style>
+  :root{
+    --bg:#0f1115;
+    --panel:#171a21;
+    --accent:#5cc8ff;
+    --accent-2:#b9f;
+    --text:#e9eef7;
+    --muted:#a7b3c2;
+    --danger:#ff6b6b;
+    --ok:#7ee787;
+    --grid:#2a2f3a;
+    --grid-strong:#3c4352;
+    --chip:#1f2430;
+    --radius:14px;
+    --radius-sm:9px;
+    --shadow:0 10px 30px rgba(0,0,0,.35);
+    --pad:14px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+    background:linear-gradient(180deg, #0e1013, #0b0c10 70%);
+    color:var(--text);
+    display:flex; min-height:100dvh; align-items:center; justify-content:center; padding:24px;
+  }
+  .app{
+    width: min(1040px, 96vw);
+    display:grid; gap:18px;
+    grid-template-columns: 1.1fr .9fr;
+  }
+  @media (max-width: 980px){
+    .app{ grid-template-columns: 1fr; }
+  }
+  .card{
+    background:var(--panel); border:1px solid #222834; border-radius:var(--radius);
+    box-shadow:var(--shadow);
+  }
+  .header{
+    display:flex; align-items:center; justify-content:space-between; padding:var(--pad); gap:10px; border-bottom:1px solid #232a37;
+    border-top-left-radius:var(--radius); border-top-right-radius:var(--radius);
+  }
+  .title{ font-weight:700; letter-spacing:.2px }
+  .controls{ display:flex; gap:10px; flex-wrap:wrap }
+  select, button{
+    background:var(--chip); border:1px solid #2a3140; color:var(--text);
+    padding:8px 12px; border-radius:999px; cursor:pointer; font-weight:600;
+    transition:.2s transform,.2s border-color,.2s background;
+  }
+  button:hover, select:hover{ border-color:var(--accent) }
+  button:active{ transform:translateY(1px) }
+  .btn-primary{ background:linear-gradient(135deg,var(--accent),var(--accent-2)); border:none; color:#0c0f14 }
+  .btn-danger{ background:#2a1720; border-color:#6a223b; color:#ffd7df }
+  .stats{
+    display:grid; grid-template-columns: repeat(3,1fr); gap:10px; padding:var(--pad); border-top:1px solid #232a37
+  }
+  .stat{
+    background:var(--chip); border:1px solid #2a3140; padding:10px 12px; border-radius:var(--radius-sm);
+  }
+  .stat b{ display:block; font-size:12px; color:var(--muted); margin-bottom:6px; font-weight:700; letter-spacing:.3px; text-transform:uppercase }
+  .stat .v{ font-size:18px; font-weight:800 }
+
+  /* Grid */
+  .board-wrap{ padding:var(--pad); }
+  .board{
+    width:min(82vmin, 560px); height:min(82vmin, 560px); margin:auto;
+    display:grid; grid-template-columns: repeat(9, 1fr); grid-template-rows: repeat(9, 1fr);
+    border:2px solid var(--grid-strong);
+    border-radius:18px; overflow:hidden; background:#0e1118;
+    box-shadow: inset 0 0 0 1px #1c2230, 0 12px 30px rgba(0,0,0,.35);
+  }
+  .cell{
+    border:1px solid var(--grid);
+    display:flex; align-items:center; justify-content:center;
+    font-weight:700; font-size: clamp(16px, 7vmin, 28px);
+    cursor:pointer; user-select:none; position:relative;
+    transition: background .15s, color .15s, border-color .15s;
+    background: #0f1420; color:var(--text);
+  }
+  .cell.given{ background:#0d111a; color:#97a4b5; cursor:default }
+  .cell:hover{ background:#121a28 }
+  .cell.selected{ outline:2px solid var(--accent); z-index:1 }
+  .cell.same{ background:#121827 }
+  .cell.conflict{ background:#1a1217 }
+  .cell.wrong{ color:var(--danger) }
+  .cell.correct{ color:var(--ok) }
+
+  /* Strong 3x3 boundaries (THICK 4px) */
+  .cell { 
+    box-shadow:
+      0 -1px 0 0 var(--grid) inset,
+      -1px 0 0 0 var(--grid) inset;
+  }
+  .cell.r0, .cell.r3, .cell.r6 { border-top: 4px solid var(--grid-strong) !important; }
+  .cell.c0, .cell.c3, .cell.c6 { border-left: 4px solid var(--grid-strong) !important; }
+  .cell.r8 { border-bottom: 4px solid var(--grid-strong) !important; }
+  .cell.c8 { border-right: 4px solid var(--grid-strong) !important; }
+
+  /* rounded outer corners */
+  .board{ border-radius:18px }
+  .cell:first-child { border-top-left-radius:14px }
+  .cell:nth-child(9){ border-top-right-radius:14px }
+  .cell:nth-child(73){ border-bottom-left-radius:14px }
+  .cell:nth-child(81){ border-bottom-right-radius:14px }
+
+  /* Number bar */
+  .pad{ padding:var(--pad); border-top:1px solid #232a37; display:flex; justify-content:center; }
+  .digits{
+    display:grid; grid-template-columns: repeat(10, 1fr); gap:8px; width:min(82vmin,560px); margin:auto;
+  }
+  .digit{
+    border:1px solid #2a3140; background:var(--chip); padding:10px 0; text-align:center; font-weight:800; border-radius:12px; cursor:pointer;
+    transition:.15s transform,.15s border-color,.15s background; user-select:none;
+  }
+  .digit:hover{ border-color:var(--accent) }
+  .digit.active{ outline:2px solid var(--accent); }
+  .digit.eraser::after{ content:"🧽"; font-size:18px; line-height:1; }
+
+  /* Right column */
+  .side{ padding:var(--pad); display:flex; flex-direction:column; gap:12px; }
+  .panel{ background:var(--panel); border:1px solid #222834; border-radius:var(--radius); padding:var(--pad); }
+  .row{ display:flex; gap:10px; flex-wrap:wrap }
+  .meta{ display:grid; grid-template-columns: 1fr 1fr; gap:12px }
+  .meta .item{ background:var(--chip); border:1px solid #2a3140; border-radius:12px; padding:10px 12px; }
+  .meta .item b{ display:block; font-size:12px; color:var(--muted); margin-bottom:6px; font-weight:800; letter-spacing:.3px; text-transform:uppercase }
+  .meta .item .v{ font-weight:800; font-size:20px }
+  .note{ color:var(--muted); font-size:13px; line-height:1.5 }
+  .link{ color:var(--accent) }
+
+  /* Footer (screen) */
+  footer.site-footer{
+    margin-top:20px; text-align:center; color:var(--muted); font-size:14px;
+  }
+
+  /* PRINT LAYOUT */
+  @media print {
+    body{ background:#fff; padding:0; }
+    .app{ width:100%; display:block; }
+    .side, .header .controls, .pad, .stats{ display:none !important; }
+    .card{ border:none; box-shadow:none; }
+    .header{ border:none; }
+    .title{ color:#000 }
+    .board-wrap{ padding:0; }
+    .board{
+      width: 150mm; height: 150mm; /* smaller square */
+      background:#fff; border:2px solid #000; box-shadow:none;
+      margin-bottom: 8mm; /* space before Challenge ID */
+    }
+    .cell{
+      background:#fff; color:#000;
+      border:1px solid #999;
+    }
+    .cell.r0, .cell.r3, .cell.r6 { border-top: 2px solid #000 !important; }
+    .cell.c0, .cell.c3, .cell.c6 { border-left: 2px solid #000 !important; }
+    .cell.r8 { border-bottom: 2px solid #000 !important; }
+    .cell.c8 { border-right: 2px solid #000 !important; }
+
+    #printHeader, #printFooter{ display:block !important; color:#000; }
+    #printHeader{
+      margin: 0 0 8mm 0; font-size:14px; text-align:left;
+    }
+    #printFooter{
+      margin-top:8mm; font-size:12px; text-align:center;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <!-- LEFT: Board -->
+    <div class="card">
+      <div class="header">
+        <div class="title">SUDOKU</div>
+        <div class="controls">
+          <select id="level">
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+          <button id="newBtn" class="btn-primary">New Game</button>
+          <button id="hintBtn">Hint</button>
+          <button id="solveBtn" class="btn-danger">Solve</button>
+          <button id="printBtn">Print PDF</button>
+        </div>
+      </div>
+
+      <div class="board-wrap">
+        <div id="board" class="board" aria-label="Sudoku board"></div>
+      </div>
+
+      <div class="pad">
+        <div class="digits" id="digits"></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><b>Timer</b><div class="v" id="time">00:00</div></div>
+        <div class="stat"><b>Coins</b><div class="v" id="coins">0</div></div>
+        <div class="stat"><b>Highscore (Best Time)</b><div class="v" id="hiscore">—</div></div>
+      </div>
+
+      <!-- Elements shown only when printing -->
+      <div id="printHeader" style="display:none">
+        <div><b>Challenge ID:</b> <span id="printId">—</span></div>
+        <div><b>Level:</b> <span id="printLevel">—</span></div>
+        <div style="margin-top:4px">• Fill the grid so that each row, column and 3×3 box contains digits 1–9.<br/>• Feel stuck? Simply enter the Challenge ID to access the answer sheet. Your session answers are stored using LocalStorage, so avoid clearing your browser history unless you intend to perform a full reset. And make sure you already open once</div>
+      </div>
+      <div id="printFooter" style="display:none">
+        Sudoku Challenge by Emenes Interactive
+      </div>
+    </div>
+
+    <!-- RIGHT: Info / Stats -->
+    <div class="side">
+      <div class="panel">
+        <div class="row">
+          <div class="item meta" style="width:100%">
+            <div class="item">
+              <b>Current Level</b>
+              <div class="v" id="curLevel">Easy</div>
+            </div>
+            <div class="item">
+              <b>Status</b>
+              <div class="v" id="status">In progress</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:6px">
+          <div class="item meta" style="width:100%">
+            <div class="item">
+              <b>Challenge ID</b>
+              <div class="v" id="curId">—</div>
+            </div>
+            <div class="item">
+              <b>Wins / Fails</b>
+              <div class="v"><span id="wins">E0 · M0 · H0</span> / <span id="fails">E0 · M0 · H0</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:6px">
+          <div class="item meta" style="width:100%">
+            <div class="item" style="grid-column:1 / -1">
+              <b>Retrieve Solution by ID</b>
+              <div class="row" style="margin-top:6px">
+                <input id="idInput" placeholder="Enter Challenge ID" style="flex:1; min-width:160px; padding:8px 12px; border-radius:999px; border:1px solid #2a3140; background:var(--chip); color:var(--text)">
+                <button id="revealBtn">Reveal</button>
+              </div>
+              <div class="note" style="margin-top:6px">Enter a valid Challenge ID to load the full solution onto the board (no coin reward).</div>
+            </div>
+          </div>
+        </div>
+
+        <p class="note" style="margin-top:12px">
+          <br/><b>RULES & HOW TO PLAY</b><br/><br/>
+          • E = Easy / M = Medium / H = Hard.<br/>
+          • Highscore, Coins and Answer Sheet are saved in your browser (LocalStorage). Do not Clear History browser unless you intended to perform full reset.<br/>
+          • <i>New Game</i> while unfinished = current challenge is counted as <b>Failed</b> for this level.<br/>
+          • Rewards on completion: Easy +10 coins, Medium +15 coins, Hard +25 coins.<br/>
+          • <i>Instant Solve</i> reveals the whole solution and costs: Easy 50, Medium 75, Hard 125 coins. Using Solve forfeits the win reward. You also can use <i>Hint</i> repeatly to reveal all the number into a block (unlimited, free for <i>Hint<i/> usage).<br/>
+          • <i>Instant Solve</i> shows full solution (costs: 50/75/125). No reward if used.<br/>
+          • Use the number bar 1–9 OR the eraser to input/clear block.<br/><br/>
+          • <i>Print PDF</i> to play on paper <i>(offline)</i>. The PDF shows the Challenge ID each challenge session.<br/><br/>
+          • If you're stuck, simply enter the Challenge ID to access the answer sheet. Your session answers are stored using LocalStorage, so avoid clearing your browser history unless you intend to perform a full reset.<br/>
+          • The way you choose to solve it is entirely up to you. If you're looking for a real challenge, you can try to solve it without using any Hints or an Instant Solve
+        </p>
+
+        <footer class="site-footer">
+          <br>Sudoku Challenge by Emenes Interactive | 2025 | v1.6<br/>
+        </footer>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  // -------- Persistence Keys --------
+  const LS_KEYS = {
+    COINS: 'sudokuCoins_v1',
+    HIGHSCORE: 'sudokuHighscore_v1', // {easy: seconds|null, medium:..., hard:...}
+    STATS: 'sudokuStats_v1',         // {wins:{e,m,h}, fails:{e,m,h}}
+    SESSIONS: 'sudokuSessions_v1'    // { [id]: { puzzle: number[][], solution: number[][], level: string, ts: number } }
+  };
+
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
+
+  const state = {
+    level: 'easy',
+    solution: [],     // 9x9 solution
+    puzzle: [],       // 9x9 starting grid (0 empty)
+    user: [],         // 9x9 current grid
+    given: [],        // boolean 9x9 of fixed cells
+    selectedDigit: null,
+    selectedCell: null,
+    timer: 0, timerId: null,
+    running: false,
+    finished: false,
+    usedSolve: false,
+    challengeId: null
+  };
+
+  // -------- LocalStorage helpers --------
+  function loadJSON(key, fallback){ try{ return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); }catch{ return fallback; } }
+  function saveJSON(key, obj){ localStorage.setItem(key, JSON.stringify(obj)); }
+  function loadCoins(){ return parseInt(localStorage.getItem(LS_KEYS.COINS)||'0',10); }
+  function saveCoins(v){ localStorage.setItem(LS_KEYS.COINS, String(Math.max(0, v|0))); }
+  function loadHighscore(){ return loadJSON(LS_KEYS.HIGHSCORE, {easy:null, medium:null, hard:null}); }
+  function saveHighscore(obj){ saveJSON(LS_KEYS.HIGHSCORE, obj); }
+  function loadStats(){ return loadJSON(LS_KEYS.STATS, {wins:{e:0,m:0,h:0}, fails:{e:0,m:0,h:0}}); }
+  function saveStats(st){ saveJSON(LS_KEYS.STATS, st); }
+  function loadSessions(){ return loadJSON(LS_KEYS.SESSIONS, {}); }
+  function saveSessions(s){ saveJSON(LS_KEYS.SESSIONS, s); }
+
+  let coins = loadCoins();
+  let hiscore = loadHighscore();
+  let stats = loadStats();
+  let sessions = loadSessions();
+
+  // -------- UI elements --------
+  const boardEl = $('#board');
+  const digitsEl = $('#digits');
+  const levelEl = $('#level');
+  const timeEl = $('#time');
+  const coinsEl = $('#coins');
+  const hiscoreEl = $('#hiscore');
+  const curLevelEl = $('#curLevel');
+  const statusEl = $('#status');
+  const winsEl = $('#wins');
+  const failsEl = $('#fails');
+  const curIdEl = $('#curId');
+  const printIdEl = $('#printId');
+  const idInputEl = $('#idInput');
+  const printLevelEl = $('#printLevel');
+
+  // Number Bar (1-9 + eraser)
+  function buildDigits(){
+    digitsEl.innerHTML = '';
+    for(let n=1;n<=9;n++){
+      const d = document.createElement('div');
+      d.className = 'digit';
+      d.textContent = n;
+      d.setAttribute('data-n', n);
+      d.addEventListener('click', () => selectDigit(n));
+      digitsEl.appendChild(d);
+    }
+    const er = document.createElement('div');
+    er.className = 'digit eraser';
+    er.setAttribute('title','Eraser');
+    er.addEventListener('click', () => selectDigit('eraser'));
+    digitsEl.appendChild(er);
+  }
+  function selectDigit(n){
+    state.selectedDigit = n;
+    $$('.digit').forEach(x=>x.classList.remove('active'));
+    if(n==='eraser'){
+      digitsEl.lastElementChild.classList.add('active');
+    }else if(n){
+      const btn = $(`.digit[data-n="${n}"]`);
+      if(btn) btn.classList.add('active');
+    }
+  }
+
+  // -------- Generator (valid grid) --------
+  const base = 3, side = base*base;
+  const rand = (max) => Math.floor(Math.random()*max);
+  const shuffle = (xs) => { const a = xs.slice(); for(let i=a.length-1;i>0;i--){ const j = rand(i+1); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+  const pattern = (r,c) => (base*(r%base) + Math.floor(r/base) + c) % side;
+
+  function generateSolution(){
+    const rBase = [0,1,2];
+    const rows = [].concat(...shuffle(rBase).map(g=>shuffle(rBase).map(r=>g*base+r)));
+    const cols = [].concat(...shuffle(rBase).map(g=>shuffle(rBase).map(c=>g*base+c)));
+    const nums = shuffle([1,2,3,4,5,6,7,8,9]);
+    const grid = Array.from({length:side}, ()=>Array(side).fill(0));
+    for(let r=0;r<side;r++){
+      for(let c=0;c<side;c++){
+        grid[r][c] = nums[pattern(rows[r], cols[c])];
+      }
+    }
+    return grid;
+  }
+
+  function makePuzzleFromSolution(solution, level){
+    const holesByLevel = { easy: 36, medium: 46, hard: 54 };
+    const holes = holesByLevel[level] ?? 36;
+    const puzzle = solution.map(row=>row.slice());
+    const positions = shuffle([...Array(81).keys()]);
+    for(let i=0, removed=0; i<positions.length && removed<holes; i++){
+      const idx = positions[i];
+      const r = Math.floor(idx/9), c = idx%9;
+      if(puzzle[r][c] !== 0){
+        puzzle[r][c] = 0; removed++;
+      }
+    }
+    return puzzle;
+  }
+
+  // -------- Solver --------
+  function findEmpty(grid){ for(let r=0;r<9;r++) for(let c=0;c<9;c++) if(grid[r][c]===0) return [r,c]; return null; }
+  function isSafe(grid, r, c, n){
+    for(let i=0;i<9;i++){ if(grid[r][i]===n || grid[i][c]===n) return false; }
+    const br = Math.floor(r/3)*3, bc = Math.floor(c/3)*3;
+    for(let i=0;i<3;i++) for(let j=0;j<3;j++) if(grid[br+i][bc+j]===n) return false;
+    return true;
+  }
+  function solveGrid(grid){
+    const empty = findEmpty(grid);
+    if(!empty) return true;
+    const [r,c] = empty;
+    for(let n=1;n<=9;n++){
+      if(isSafe(grid,r,c,n)){
+        grid[r][c]=n;
+        if(solveGrid(grid)) return true;
+        grid[r][c]=0;
+      }
+    }
+    return false;
+  }
+
+  // -------- Board Rendering --------
+  function renderBoard(){
+    boardEl.innerHTML = '';
+    for(let r=0;r<9;r++){
+      for(let c=0;c<9;c++){
+        const div = document.createElement('div');
+        div.className = `cell r${r} c${c}`;
+        const val = state.user[r][c];
+        if(state.given[r][c]) div.classList.add('given');
+        if(val) div.textContent = val;
+        div.addEventListener('click', ()=>onCellClick(r,c, div));
+        boardEl.appendChild(div);
+      }
+    }
+    refreshHighlights();
+  }
+
+  function refreshCell(r,c){
+    const idx = r*9+c;
+    const cell = boardEl.children[idx];
+    const v = state.user[r][c];
+    cell.textContent = v ? v : '';
+    cell.classList.remove('wrong','correct','conflict','selected','same');
+    if(state.selectedCell && state.selectedCell.r===r && state.selectedCell.c===c){
+      cell.classList.add('selected');
+    }
+    markConflictsAround(r,c);
+    if(v){
+      if(v === state.solution[r][c]) cell.classList.add('correct');
+      else cell.classList.add('wrong');
+    }
+  }
+
+  function refreshHighlights(){
+    $$('.cell').forEach(el=>el.classList.remove('selected','same','conflict','wrong','correct'));
+    if(state.selectedCell){
+      const {r,c} = state.selectedCell;
+      const idx = r*9+c;
+      boardEl.children[idx].classList.add('selected');
+      const v = state.user[r][c];
+      if(v){
+        for(let i=0;i<81;i++){
+          const rr = Math.floor(i/9), cc = i%9;
+          if(state.user[rr][cc]===v) boardEl.children[i].classList.add('same');
+        }
+      }
+      markConflictsAround(r,c);
+    }
+    for(let i=0;i<81;i++){
+      const rr = Math.floor(i/9), cc = i%9;
+      const v = state.user[rr][cc];
+      if(!v) continue;
+      if(v===state.solution[rr][cc]) boardEl.children[i].classList.add('correct');
+      else boardEl.children[i].classList.add('wrong');
+    }
+  }
+
+  function markConflictsAround(r,c){
+    const v = state.user[r][c];
+    if(!v) return;
+    for(let i=0;i<9;i++){
+      if(i!==c && state.user[r][i]===v) boardEl.children[r*9+i].classList.add('conflict');
+      if(i!==r && state.user[i][c]===v) boardEl.children[i*9+c].classList.add('conflict');
+    }
+    const br = Math.floor(r/3)*3, bc = Math.floor(c/3)*3;
+    for(let i=0;i<3;i++) for(let j=0;j<3;j++){
+      const rr=br+i, cc=bc+j;
+      if(!(rr===r && cc===c) && state.user[rr][cc]===v) boardEl.children[rr*9+cc].classList.add('conflict');
+    }
+  }
+
+  function onCellClick(r,c){
+    state.selectedCell = {r,c};
+    refreshHighlights();
+    if(state.given[r][c] || !state.running) return;
+    const d = state.selectedDigit;
+    if(!d) return;
+    if(d==='eraser'){
+      if(!state.given[r][c] && state.user[r][c]!==0){
+        state.user[r][c]=0; refreshCell(r,c); checkSolved();
+      }
+      return;
+    }
+    if(!state.given[r][c]){
+      state.user[r][c] = d; refreshCell(r,c); checkSolved();
+    }
+  }
+
+  // -------- Game Flow --------
+  function formatTime(sec){ const m = Math.floor(sec/60), s = sec%60; return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; }
+  function startTimer(){ stopTimer(); timeEl.textContent='00:00'; state.timer=0; state.timerId=setInterval(()=>{ state.timer++; timeEl.textContent=formatTime(state.timer); },1000); }
+  function stopTimer(){ if(state.timerId){ clearInterval(state.timerId); state.timerId=null; } }
+  function setStatus(txt){ statusEl.textContent = txt; }
+
+  function levelCoinReward(level){ return level==='easy'?10 : level==='medium'?15 : 25; }
+  function levelSolveCost(level){ return level==='easy'?50 : level==='medium'?75 : 125; }
+
+  function updateHUD(){
+    coinsEl.textContent = String(coins);
+    curLevelEl.textContent = cap1(state.level);
+    const best = hiscore[state.level];
+    hiscoreEl.textContent = (best==null?'—':formatTime(best));
+    winsEl.textContent  = `E${stats.wins.e} · M${stats.wins.m} · H${stats.wins.h}`;
+    failsEl.textContent = `E${stats.fails.e} · M${stats.fails.m} · H${stats.fails.h}`;
+    curIdEl.textContent = state.challengeId ?? '—';
+    printIdEl.textContent = state.challengeId ?? '—';
+    if(printLevelEl) printLevelEl.textContent = cap1(state.level);
+  }
+  function cap1(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+  function generateId(){
+    // 6-digit numeric; ensure not colliding with existing sessions
+    let id;
+    do{ id = String(Math.floor(100000 + Math.random()*900000)); }
+    while (sessions[id]);
+    return id;
+  }
+
+  function newGame(fromClick=true){
+    // If abandoning an unfinished game via "New Game", mark failed for current level
+    if(fromClick && state.running && !state.finished){
+      incrementFail(state.level);
+      setStatus('Previous challenge failed. New game started.');
+    }else{
+      setStatus('In progress');
+    }
+
+    state.usedSolve = false;
+    state.finished = false;
+    state.running = true;
+
+    const sol = generateSolution();
+    const puz = makePuzzleFromSolution(sol, state.level);
+
+    state.solution = sol;
+    state.puzzle = puz;
+    state.user = puz.map(row=>row.slice());
+    state.given = puz.map(row=>row.map(v=>v!==0));
+    state.selectedCell = null;
+    state.challengeId = generateId();
+
+    // Save session { puzzle, solution } keyed by ID
+    sessions[state.challengeId] = { puzzle: puz, solution: sol, level: state.level, ts: Date.now() };
+    saveSessions(sessions);
+
+    selectDigit(null);
+    renderBoard();
+    startTimer();
+    updateHUD();
+  }
+
+  function incrementWin(level){
+    if(level==='easy') stats.wins.e++; else if(level==='medium') stats.wins.m++; else stats.wins.h++;
+    saveStats(stats);
+  }
+  function incrementFail(level){
+    if(level==='easy') stats.fails.e++; else if(level==='medium') stats.fails.m++; else stats.fails.h++;
+    saveStats(stats);
+    updateHUD();
+  }
+  function awardCoins(n){ coins = Math.max(0, coins + n); saveCoins(coins); updateHUD(); }
+
+  function checkSolved(){
+    for(let r=0;r<9;r++) for(let c=0;c<9;c++){ if(state.user[r][c]===0) return false; }
+    for(let r=0;r<9;r++) for(let c=0;c<9;c++){ if(state.user[r][c] !== state.solution[r][c]) return false; }
+    state.finished = true; state.running = false; stopTimer(); setStatus('Completed!');
+    const t = state.timer; const best = hiscore[state.level];
+    if(best==null || t<best){ hiscore[state.level] = t; saveHighscore(hiscore); }
+    if(!state.usedSolve){ const rw = levelCoinReward(state.level); awardCoins(rw); incrementWin(state.level); }
+    updateHUD(); return true;
+  }
+
+  // -------- Hint / Solve / Reveal by ID --------
+  function doHint(){
+    if(!state.running || state.finished) return;
+    const empties = [];
+    for(let r=0;r<9;r++) for(let c=0;c<9;c++){
+      if(state.given[r][c]) continue;
+      if(state.user[r][c]!==state.solution[r][c]) empties.push([r,c]);
+    }
+    if(empties.length===0) return;
+    const [r,c] = empties[Math.floor(Math.random()*empties.length)];
+    state.user[r][c] = state.solution[r][c];
+    refreshCell(r,c);
+    checkSolved();
+  }
+
+  function doSolve(){
+    if(!state.running || state.finished) return;
+    const cost = levelSolveCost(state.level);
+    if(coins < cost){ alert(`Not enough coins. Need ${cost}.`); return; }
+    if(!confirm(`Solve this puzzle for ${cost} coins? (No completion reward will be given)`)) return;
+    coins -= cost; saveCoins(coins); updateHUD();
+    for(let r=0;r<9;r++) for(let c=0;c<9;c++){ state.user[r][c] = state.solution[r][c]; }
+    renderBoard(); state.usedSolve = true; checkSolved();
+  }
+
+  function revealById(){
+    const id = (idInputEl.value||'').trim();
+    if(!id){ alert('Please enter a Challenge ID.'); return; }
+    const ses = sessions[id];
+    if(!ses){ alert('Invalid ID. No session found.'); return; }
+
+    // Load that solution into the current board (acts like Solve; no rewards)
+    if(!confirm(`Load full solution for Challenge ID ${id}? (No completion reward)`)) return;
+
+    // If level differs, we still allow reveal but do not change state.level
+    state.solution = ses.solution.map(r=>r.slice());
+    state.puzzle = ses.puzzle.map(r=>r.slice());
+    state.user = ses.solution.map(r=>r.slice()); // fill solved
+    state.given = ses.puzzle.map(row=>row.map(v=>v!==0));
+    state.usedSolve = true;
+    state.finished = false; // let checkSolved handle finalization
+    state.running = true;
+    renderBoard();
+    checkSolved();
+  }
+
+  // -------- PRINT --------
+  function doPrint(){
+    // Ensure print header shows correct ID
+    printIdEl.textContent = state.challengeId ?? '—';
+    if(printLevelEl) printLevelEl.textContent = cap1(state.level);
+
+    // For printing, ensure board shows only puzzle numbers (no wrong/correct colors)
+    // We'll temporarily render a "puzzle-only" view by swapping state.user -> puzzle, then revert.
+    const backupUser = state.user.map(r=>r.slice());
+    const backupGiven = state.given.map(r=>r.slice());
+
+    // Build a puzzle-only grid
+    state.user = state.puzzle.map(r=>r.slice());
+    state.given = state.puzzle.map(row=>row.map(v=>v!==0));
+    renderBoard();
+
+    // Open print dialog
+    window.print();
+
+    // Revert to actual user grid
+    state.user = backupUser;
+    state.given = backupGiven;
+    renderBoard();
+    refreshHighlights();
+  }
+
+  // -------- Events --------
+  $('#newBtn').addEventListener('click', ()=> newGame(true));
+  $('#hintBtn').addEventListener('click', doHint);
+  $('#solveBtn').addEventListener('click', doSolve);
+  $('#printBtn').addEventListener('click', doPrint);
+  $('#revealBtn').addEventListener('click', revealById);
+  levelEl.addEventListener('change', (e)=>{
+    state.level = e.target.value;
+    newGame(false); // switching level starts fresh; not counted as fail if not via New Game click
+  });
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e)=>{
+    if(e.key>='1' && e.key<='9'){ selectDigit(parseInt(e.key,10)); return; }
+    if(e.key==='0' || e.key==='Backspace' || e.key==='Delete'){ selectDigit('eraser'); return; }
+    const sel = state.selectedCell;
+    if(!sel) return;
+    if(['ArrowUp','w','ArrowDown','s','ArrowLeft','a','ArrowRight','d'].includes(e.key)){
+      e.preventDefault();
+      let r=sel.r,c=sel.c;
+      if(e.key==='ArrowUp'||e.key==='w') r = (r+8)%9;
+      if(e.key==='ArrowDown'||e.key==='s') r = (r+1)%9;
+      if(e.key==='ArrowLeft'||e.key==='a') c = (c+8)%9;
+      if(e.key==='ArrowRight'||e.key==='d') c = (c+1)%9;
+      state.selectedCell = {r,c}; refreshHighlights();
+    }
+    if(e.key==='Enter'){ doHint(); }
+  });
+
+  // -------- Init --------
+  buildDigits();
+  updateHUD();
+  newGame(false); // initial game
+})();
+</script>
+</body>
+</html>
