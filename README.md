@@ -18,6 +18,12 @@ A simple Sudoku game that runs directly in your browser.
 - Built with HTML, CSS, and vanilla JavaScript.  
 - Hosted on [GitHub Pages](https://pages.github.com/).  
 
+### Screenshot
+![Sudoku Screenshot 1](https://github.com/emenes/simple-sudoku/blob/main/img/screenshot1.png?raw=true)
+![Sudoku Screenshot 2](https://github.com/emenes/simple-sudoku/blob/main/img/screenshot2.png?raw=true)
+![Sudoku Screenshot 3](https://github.com/emenes/simple-sudoku/blob/main/img/screenshot3.png?raw=true)
+
+
 ---
 
 🎮 Enjoy playing and challenge yourself to complete Sudoku!
